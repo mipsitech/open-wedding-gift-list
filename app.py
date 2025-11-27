@@ -1,76 +1,47 @@
 import streamlit as st
 import pandas as pd
 import uuid
-import gspread # NOVO: Importa a biblioteca para Google Sheets
-from gspread.exceptions import WorksheetNotFound
 
 # --- 🎯 CONFIGURAÇÃO E AUTENTICAÇÃO DO GOOGLE SHEETS ---
 
-# Autentica e abre a planilha usando o st.secrets
-# O nome 'gsheets' deve ser o mesmo usado em [gsheets] no secrets.toml
-def get_gsheets_client():
-    """Retorna o cliente gspread autenticado."""
-    # O Streamlit usa automaticamente os segredos configurados em .streamlit/secrets.toml
-    return gspread.service_account_info(info=st.secrets["gsheets"]["service_account"])
-
-# Carrega o ID da planilha do secrets.toml
-SHEET_ID = st.secrets["gsheets"]["sheet_id"]
+# O Streamlit agora usa st.connection para autenticar e gerenciar o gspread
+conn = st.connection("gsheets", type="spreadsheet") 
 
 # --- FUNÇÕES DE DADOS PARA PLANILHA GOOGLE ---
 
 @st.cache_data 
 def load_data(): 
-    """Carrega os dados do Google Sheet."""
+    """Carrega os dados do Google Sheet usando a conexão nativa."""
     try:
-        # 1. Autentica e conecta ao cliente
-        client = get_gsheets_client()
+        # Usa o método read() do Streamlit Connection para carregar a primeira aba
+        df = conn.read(worksheet="Página1", ttl=5) # 'ttl=5' define o tempo de cache (5 segundos)
         
-        # 2. Abre a planilha pelo ID
-        spreadsheet = client.open_by_key(SHEET_ID)
-        
-        # 3. Abre a primeira aba (Worksheet)
-        worksheet = spreadsheet.sheet1
-        
-        # 4. Lê todos os dados como DataFrame
-        # get_all_records() ignora a primeira linha (cabeçalho) e retorna dicionários
-        data = worksheet.get_all_records()
-        df = pd.DataFrame(data)
-        
-        # Se a planilha estiver vazia (exceto cabeçalho), cria o DF vazio com as colunas corretas
+        # O Streamlit Connection retorna um DataFrame. Se estiver vazio, cria o DF vazio.
         if df.empty or 'ID' not in df.columns:
-             st.error("A planilha Google está vazia ou as colunas não correspondem (ID, Item, Categoria, Status).")
+             # Retorna um DataFrame vazio com as colunas esperadas
              df = pd.DataFrame(columns=['ID','Item','Categoria','Status'])
         
         return df
     
-    except WorksheetNotFound:
-        st.error("Erro: A primeira aba da sua planilha Google não foi encontrada.")
-        return pd.DataFrame(columns=['ID','Item','Categoria','Status'])
     except Exception as e:
-        st.error(f"Erro de conexão com o Google Sheets. Verifique o secrets.toml. Erro: {e}")
+        st.error(f"Erro ao carregar dados do Google Sheets. Verifique o SHEET_ID e o nome da ABA (deve ser 'Página1'). Erro: {e}")
         return pd.DataFrame(columns=['ID','Item','Categoria','Status'])
 
 
-def save_data(df, novo_presente_data): 
-    """Adiciona uma nova linha à planilha Google."""
+def save_data(novo_presente_data): 
+    """Adiciona uma nova linha à planilha Google usando a conexão nativa."""
     try:
-        client = get_gsheets_client()
-        spreadsheet = client.open_by_key(SHEET_ID)
-        worksheet = spreadsheet.sheet1
-
-        # Prepara a nova linha como uma lista de valores, na ordem das colunas
-        nova_linha = [
-            novo_presente_data['ID'],
-            novo_presente_data['Item'],
-            novo_presente_data['Categoria'],
-            novo_presente_data['Status']
-        ]
-
-        # Adiciona a linha ao final da planilha
-        worksheet.append_row(nova_linha)
+        # Puxa os dados existentes (para garantir a estrutura)
+        df_existente = conn.read(worksheet="Página1")
+        
+        # Cria um novo DataFrame com os novos dados
+        novo_df = pd.DataFrame([novo_presente_data])
+        
+        # Concatena e escreve de volta na planilha
+        conn.write(df=novo_df, worksheet="Página1", append=True)
         return True
     except Exception as e:
-        st.error(f"Erro ao salvar dados no Google Sheets. Erro: {e}")
+        st.error(f"Erro ao salvar dados no Google Sheets. Verifique as permissões de EDITOR. Erro: {e}")
         return False
 
 # --- CONFIGURAÇÃO INICIAL E RESTO DO CÓDIGO ---
@@ -81,28 +52,85 @@ st.set_page_config(
     page_icon='🎁'
 )
 
-# --- CSS PERSONALIZADO (DESIGN POR CORES E TIPOGRAFIA) ---
-# ... (Mantenha seu bloco st.markdown com o CSS) ...
-
-# 🛑 IMPORTANTE: COLE SEU BLOCO st.markdown COM O CSS AQUI (mantido o código anterior para foco no Python)
+# --- CSS PERSONALIZADO (DESIGN: FUNDO ESCURO E LETRAS BRANCAS) ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;400;700&family=Playfair+Display:wght@700&display=swap');
 
     :root {
-        --primary-color: #F7D71C; 
-        --secondary-color: #FFFFFF; 
-        --accent-color: #E91E63; 
-        --text-color-dark: #333333; 
-        --text-color-light: #FFFFFF; 
-        --bg-color: #36454F; 
+        --primary-color: #F7D71C; /* Dourado */
+        --secondary-color: #FFFFFF; /* Branco para texto principal/títulos */
+        --accent-color: #E91E63; /* Rosa de Destaque */
+        --text-color-dark: #333333; /* Texto escuro para formulário/lista */
+        --text-color-light: #FFFFFF; /* Texto claro para o fundo escuro */
+        --bg-color: #36454F; /* Cinza Chumbo */
     }
-    /* Restante do seu CSS ... */
+
+    /* 1. Fundo da Aplicação: Forçando o cinza chumbo */
+    [data-testid="stAppViewContainer"] {
+        background-color: var(--bg-color) !important;
+    }
     
-    [data-testid="stAppViewContainer"] { background-color: var(--bg-color) !important; }
-    .st-emotion-cache-13l37u7, .stForm, .stDataFrame { background-color: #FFFFFF !important; }
-    div.stText, div.stMarkdown { color: var(--text-color-light) !important; }
-    /* ... (Mantenha todo o resto do CSS aqui para evitar erros) ... */
+    /* 2. Conteúdo Central (Lista e Formulário) - Fundo Branco */
+    .st-emotion-cache-13l37u7, .stForm, .stDataFrame { 
+        background-color: #FFFFFF !important; 
+    }
+    .st-emotion-cache-13l37u7 { 
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+    
+    /* 3. CORREÇÃO CRÍTICA: Texto Principal (fora dos blocos brancos) deve ser CLARO */
+    .stText, .stMarkdown, [data-testid="stVerticalBlock"] > div > div > div > div.stMarkdown > div, .st-emotion-cache-1l09y6f {
+        color: var(--text-color-light) !important; /* CORREÇÃO APLICADA AQUI */
+    }
+    
+    /* Estilo Geral do Corpo */
+    body {
+        font-family: 'Montserrat', sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color-light); 
+    }
+
+    h1, h2, h3 { 
+        font-family: 'Playfair Display', serif;
+        color: var(--secondary-color);
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    h1 {
+        font-size: 3.5em; 
+        color: var(--accent-color); 
+        padding-top: 20px;
+        letter-spacing: 2px;
+    }
+    
+    h2 {
+        font-size: 2.2em;
+        color: var(--secondary-color);
+        margin-bottom: 15px;
+    }
+
+    /* Formulário (Texto Interno Escuro) */
+    .stForm label, .stForm input, .stForm select, .stForm div:not(.stButton) {
+        color: var(--text-color-dark) !important; 
+    }
+
+    /* Estilo da Tabela (Texto Interno Escuro) */
+    .stDataFrame > div > div > div > div:nth-child(2) > div:nth-child(1) {
+        font-weight: 700 !important; 
+        color: var(--text-color-dark) !important; 
+        background-color: #f0f0f0 !important; 
+        border-bottom: 3px solid var(--accent-color) !important; 
+    }
+    .stDataFrame {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    /* Outros estilos omitidos para brevidade, mas devem ser mantidos no seu arquivo */
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -111,8 +139,13 @@ st.markdown("""
 
 st.title('Lista de Presentes de Casamento\nAna & Roger')
 
-# --- Imagens e Layout ---
-df_data = load_data() # Carrega os dados da planilha
+# --- Imagem de Cabeçalho (Uso nativo) ---
+try:
+    st.image("ana1.jpg", use_container_width=True) 
+except Exception:
+    st.warning("Não foi possível carregar a imagem de cabeçalho (ana1.jpg).")
+
+df_data = load_data() 
 
 coluna_lista, coluna_form = st.columns([2,1]) 
 
@@ -174,7 +207,7 @@ with coluna_form:
                 }
                 
                 # Chama a nova função save_data
-                if save_data(df_data, novo_presente_data):
+                if save_data(novo_presente_data):
                     st.success(f'Obrigado por adicionar "{novo_item}" à lista de presentes! 🎉')
                     st.balloons()
                     st.cache_data.clear() # Limpa o cache para forçar a leitura dos novos dados
