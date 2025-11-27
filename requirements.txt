@@ -1,3 +1,5 @@
 streamlit
 pandas
+<<<<<<< HEAD
 gspread # NOVO: Biblioteca para Google Sheets
+
