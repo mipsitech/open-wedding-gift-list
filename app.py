@@ -1,193 +1,185 @@
 import streamlit as st
 import pandas as pd
 import uuid
+import gspread # NOVO: Importa a biblioteca para Google Sheets
+from gspread.exceptions import WorksheetNotFound
 
-@st.cache_data
-def load_data():
+# --- 🎯 CONFIGURAÇÃO E AUTENTICAÇÃO DO GOOGLE SHEETS ---
+
+# Autentica e abre a planilha usando o st.secrets
+# O nome 'gsheets' deve ser o mesmo usado em [gsheets] no secrets.toml
+def get_gsheets_client():
+    """Retorna o cliente gspread autenticado."""
+    # O Streamlit usa automaticamente os segredos configurados em .streamlit/secrets.toml
+    return gspread.service_account_info(info=st.secrets["gsheets"]["service_account"])
+
+# Carrega o ID da planilha do secrets.toml
+SHEET_ID = st.secrets["gsheets"]["sheet_id"]
+
+# --- FUNÇÕES DE DADOS PARA PLANILHA GOOGLE ---
+
+@st.cache_data 
+def load_data(): 
+    """Carrega os dados do Google Sheet."""
     try:
-        df = pd.read_csv('lista_presentes.csv')
-    except Exception:
-        df = pd.DataFrame(columns=['ID','Item','Categoria','Status'])
-    return df
+        # 1. Autentica e conecta ao cliente
+        client = get_gsheets_client()
+        
+        # 2. Abre a planilha pelo ID
+        spreadsheet = client.open_by_key(SHEET_ID)
+        
+        # 3. Abre a primeira aba (Worksheet)
+        worksheet = spreadsheet.sheet1
+        
+        # 4. Lê todos os dados como DataFrame
+        # get_all_records() ignora a primeira linha (cabeçalho) e retorna dicionários
+        data = worksheet.get_all_records()
+        df = pd.DataFrame(data)
+        
+        # Se a planilha estiver vazia (exceto cabeçalho), cria o DF vazio com as colunas corretas
+        if df.empty or 'ID' not in df.columns:
+             st.error("A planilha Google está vazia ou as colunas não correspondem (ID, Item, Categoria, Status).")
+             df = pd.DataFrame(columns=['ID','Item','Categoria','Status'])
+        
+        return df
+    
+    except WorksheetNotFound:
+        st.error("Erro: A primeira aba da sua planilha Google não foi encontrada.")
+        return pd.DataFrame(columns=['ID','Item','Categoria','Status'])
+    except Exception as e:
+        st.error(f"Erro de conexão com o Google Sheets. Verifique o secrets.toml. Erro: {e}")
+        return pd.DataFrame(columns=['ID','Item','Categoria','Status'])
 
-def save_data(df):
-    df.to_csv('lista_presentes.csv', index=False)
 
-# --- CSS PERSONALIZADO (DESIGN E FONTES) ---
+def save_data(df, novo_presente_data): 
+    """Adiciona uma nova linha à planilha Google."""
+    try:
+        client = get_gsheets_client()
+        spreadsheet = client.open_by_key(SHEET_ID)
+        worksheet = spreadsheet.sheet1
+
+        # Prepara a nova linha como uma lista de valores, na ordem das colunas
+        nova_linha = [
+            novo_presente_data['ID'],
+            novo_presente_data['Item'],
+            novo_presente_data['Categoria'],
+            novo_presente_data['Status']
+        ]
+
+        # Adiciona a linha ao final da planilha
+        worksheet.append_row(nova_linha)
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar dados no Google Sheets. Erro: {e}")
+        return False
+
+# --- CONFIGURAÇÃO INICIAL E RESTO DO CÓDIGO ---
+
+st.set_page_config(
+    layout='wide',
+    page_title='Lista de Presentes de Casamento | Ana & Roger',
+    page_icon='🎁'
+)
+
+# --- CSS PERSONALIZADO (DESIGN POR CORES E TIPOGRAFIA) ---
+# ... (Mantenha seu bloco st.markdown com o CSS) ...
+
+# 🛑 IMPORTANTE: COLE SEU BLOCO st.markdown COM O CSS AQUI (mantido o código anterior para foco no Python)
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@700&display=swap');
 
     :root {
-        --primary-color: #F7D71C; /* Dourado */
-        --secondary-color: #000000; /* Preto */
-        --accent-color: #E91E63; /* Rosa das fotos */
-        --text-color: #333333;
-        --bg-color: #F8F9FA;
+        --primary-color: #F7D71C; 
+        --secondary-color: #FFFFFF; 
+        --accent-color: #E91E63; 
+        --text-color-dark: #333333; 
+        --text-color-light: #FFFFFF; 
+        --bg-color: #36454F; 
     }
-
-    body {
-        font-family: 'Montserrat', sans-serif;
-        color: var(--text-color);
-        background-color: var(--bg-color);
-    }
-
-    h1, h2, h3, .st-emotion-cache-10trblm { 
-        font-family: 'Playfair Display', serif;
-        color: var(--secondary-color);
-        text-align: center;
-        margin-bottom: 30px;
-    }
-
-    h1 {
-        font-size: 3.5em; 
-        color: var(--accent-color); 
-    }
-
-    h2 {
-        font-size: 2.2em;
-        color: var(--secondary-color);
-    }
-
-    .stButton > button {
-        background-color: var(--accent-color);
-        color: white;
-        font-weight: 600;
-        border-radius: 8px;
-        padding: 10px 20px;
-        border: none;
-        transition: all 0.2s ease-in-out;
-    }
-
-    .stButton > button:hover {
-        background-color: #C2185B; 
-        transform: translateY(-2px);
-    }
-
-    .stTextInput > label, .stSelectbox > label {
-        font-weight: 600;
-        color: var(--text-color);
-    }
-
-    .stForm {
-        background-color: white;
-        padding: 30px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    .stDataFrame {
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-    }
-
-    .stAlert {
-        border-radius: 8px;
-    }
-
-    /* Estilo para a imagem de cabeçalho */
-    .header-image {
-        width: 100%;
-        max-height: 400px;
-        object-fit: cover;
-        border-radius: 12px;
-        margin-bottom: 40px;
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-    }
-
-    .couple-images {
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-        margin-top: 40px;
-        margin-bottom: 40px;
-    }
-
-    .couple-images img {
-        width: 45%; 
-        border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-    }
-
+    /* Restante do seu CSS ... */
+    
+    [data-testid="stAppViewContainer"] { background-color: var(--bg-color) !important; }
+    .st-emotion-cache-13l37u7, .stForm, .stDataFrame { background-color: #FFFFFF !important; }
+    div.stText, div.stMarkdown { color: var(--text-color-light) !important; }
+    /* ... (Mantenha todo o resto do CSS aqui para evitar erros) ... */
 </style>
 """, unsafe_allow_html=True)
+
 
 # --- CORPO PRINCIPAL DO APLICATIVO ---
 
 st.title('Lista de Presentes de Casamento\nAna & Roger')
 
-# --- Imagem de Cabeçalho (Retorna ao uso nativo do Streamlit) ---
-try:
-    #  O Streamlit carrega a imagem do diretório do script
-    st.image("ana3.jpg", use_container_width=True) 
-except Exception as e:
-    st.warning("Não foi possível carregar a imagem de cabeçalho (ana3.jpg). Verifique se o arquivo está na pasta.")
+# --- Imagens e Layout ---
+df_data = load_data() # Carrega os dados da planilha
 
-df_data = load_data()
+coluna_lista, coluna_form = st.columns([2,1]) 
 
-coluna_lista, coluna_form = st.columns([2, 1])
-
-#=== Coluna da Lista de Presentes ===
+# === Coluna da Lista de Presentes ===
 with coluna_lista:
     st.header("🎉 Presentes Confirmados")
-
-    df_ganhos = df_data[df_data['Status'] == 'Ganho'][['Item', 'Categoria']]
+    
+    df_ganhos = df_data[df_data['Status'] == 'Ganho']
 
     if df_ganhos.empty:
-        st.info('Ainda não há presentes confirmados. Adicione um presente no formulário ao lado!') 
+        st.info('Ainda não há presentes confirmados. Adicione um presente no formulário ao lado!')
     else:
         st.dataframe(
             df_ganhos[['Item', 'Categoria']],
             hide_index=True,
             use_container_width=True,
         )
-
+    
     st.markdown("---")
 
-  # --- Seção com as outras imagens do casal ---
-    st.subheader('Nosso Momento Especial')
-
-    # 🛑 Usa o layout de coluna nativo do Streamlit para as duas imagens
+    st.subheader("Nosso Momento Especial")
     col1, col2 = st.columns(2)
     try:
         with col1:
             st.image("ana2.jpg", use_container_width=True)
         with col2:
-            st.image("ana1.jpg", use_container_width=True)
-    except Exception as e:
-        st.warning("Não foi possível carregar as imagens menores (ana2.jpg ou ana1.jpg).")
+            st.image("ana3.jpg", use_container_width=True)
+    except Exception:
+        st.warning("Não foi possível carregar as imagens menores.")
 
     st.markdown("---")
 
-    # === Coluna do Formulário de Contribuição ===
+
+# === Coluna do Formulário de Contribuição ===
 with coluna_form:
-    st.header("Adicione o seu Presente à Lista")
+    st.header('Adicione o seu presente à lista')
 
     with st.form('form_Presente', clear_on_submit=True):
-        novo_item = st.text_input('Nome do Presente', help='Exemplo: "Jogo de Panelas" ou "Vale Presente"...')
-        
+        novo_item = st.text_input('Nome do Presente:', help='Exemplo: "Jogo de Panelas" ou "Vale-Presente"')
+
         nova_categoria = st.selectbox(
-            'Categoria',
-            options=['Cozinha', 'Decoração', 'Eletrodomésticos', 'Utensílios Domésticos', 'Vale Presente', 'Enxoval', 'Outros'],
+            'Categoria:',
+            ['Eletrônicos', 'Eletrodomésticos', 'Utensílios Domésticos', 'Móveis', 'Decoração', 'Vale-Presente', 'Enxoval', 'Outros'],
             help='Selecione a categoria que melhor descreve o presente.'
         )
-        
-        submited = st.form_submit_button('Confirmar Presente')
 
-        if submited:
+        submitted = st.form_submit_button('Confirmar Presente')
+
+        if submitted:
             if novo_item:
-                novo_id = str(uuid.uuid4())  # Gera um ID único
-                novo_presente = pd.DataFrame({
-                    'ID': [novo_id],
-                    'Item': [novo_item],
-                    'Categoria': [nova_categoria],
-                    'Status': ['Ganho']  # Novo presente começa como Pendente
-                })
-                df_atualizado = pd.concat([df_data, novo_presente], ignore_index=True)
-                save_data(df_data)
-                st.success(f'Presente "{novo_item}" adicionado com sucesso! Obrigado por contribuir! 🎉')
-                st.balloons()
+                novo_id = str(uuid.uuid4())
+                
+                # Dados para salvar na planilha
+                novo_presente_data = {
+                    'ID': novo_id,
+                    'Item': novo_item,
+                    'Categoria': nova_categoria,
+                    'Status': 'Ganho'
+                }
+                
+                # Chama a nova função save_data
+                if save_data(df_data, novo_presente_data):
+                    st.success(f'Obrigado por adicionar "{novo_item}" à lista de presentes! 🎉')
+                    st.balloons()
+                    st.cache_data.clear() # Limpa o cache para forçar a leitura dos novos dados
+                    st.rerun()
+                # Se save_data falhou, a mensagem de erro já apareceu dentro dela.
+                
             else:
                 st.error('Por favor, insira o nome do presente antes de confirmar.')
-    
-

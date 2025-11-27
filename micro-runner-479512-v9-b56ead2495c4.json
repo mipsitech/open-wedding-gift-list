@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "micro-runner-479512-v9",
+  "private_key_id": "b56ead2495c4d09b0218b29eeeb039d25944323f",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCTiQSt6EmDdO5j\ndUf0lZ38o33xqP+jH+bYdnMfZElqt/efID06/0nJcOTzsliHvWjvpPFT194W9xFi\nk8pi4kI2y9dxREk4pouGXebtwfOWOjq7N8KiiazEbwX12fljjJx6JfbPCEztjlK6\nw/sjPeE8XG8YC2OgJBM4NN6r1FRtXqzYRgnUKMtEh14gqA7b6mrImp+00CmaEeSp\njlP6E8iG39Wr5Gq9GAe8luvxvQ5T/5/3DiSamK+vNoPEKoyR4esHKUVLUXM3re2r\nrXoX1NB0BdP6LVucE3qwgpVqZFSvW5RatyvDP4kPzPSWSnyB2yYp4S5pKEyw4AGT\n7hPDikU1AgMBAAECgf9KFrSQ1AIEM/tZIx3dqOM841HawsXe4KCQKKEnbi0zuGkg\nboEUt/v+t4x6KLnj6blJ7krzbPMlLIBFMsZnrHtsXz4deqCCfX16GbAw6z103GBV\nRMz4H4qmwj+HpXS70onCBV7mUNrl4Mm/yyIJlmyJLLzQmKZroRPlMG/Z02aEhTSA\nhwPHN3al07haJB3sW/g2BXW5rKsWame8h2HMBRGevd8HLUd1yNWxj7dPRwcZ3KGz\n1m+87CJEESliwmvM/6NCknPSkt5Ygj+bu8KXqJ5SQR+hNrauoRbxp/OeIFM76AXW\nubgBmewdba108R0eSY8DPDJVEVF1XnamjdPYzAkCgYEAxKGUovlJjiDGAHQGh2fg\nWaaachvAzpyBvIvRfIBrafThpi/TN4XPifOq/MvPyT8Xl00F6P8ambmsjJIFRir5\nDTIkl/5tR7obxF5oCE2hZOUlJb18sfIOWdOW6FBEhitC9UwfDR3V9LT9STXxOpSH\nN2cgq5vedh3zPO6XgOOyCtkCgYEAwBSc/A5EO4k42Dno3tMiozVxbGvQ8Nt0Chau\no7jw91m3upVFIbD4RS9YeiT0AtK+VRxW+X/b7qUrheTsJ/yypP/bYwtl1ul2lZOV\nCFy9y0VhWysCzJMP1oqI2Ax92xFhN8XAkHelHemRZt5nmWgNo+yN979EQKPlAOzY\nbEuye70CgYEAiDCiEn83QwnQGmBCZWa9LVsHfiFa2b/s2/q7jdAkla7W25QkZ0B3\nDsWGmLFRqcHZRSJEBa0rb2365SH+JSt+dHVWgy/l4Ng2gzwgMiASuR89K3ai910A\nM5cp3p451/P+3Idsulj/6A2zoRGLk1dskCMNrc63tnfoETvwE4Whu4ECgYBlhb+f\nna7ExPeNmbYSqAfDuciUZLwPwf4oIur1UBfUtM/eR209rHrcnnSmQofSQi8lbxAt\nWT4WeahyYZfMXszRVwZO6ERQfh8WWeXIgLQ0DxyxAh+9nvEdFSXVA201746x2sy3\nzvUvxTb75wtc0tl6zdoPm0Fo5PdyML0HKE9TBQKBgQCAhYDfxLreSEWsXrP/pHKT\n29i3golNxW0ZsecMOV5xNHe75SApBbDXwfM0NTi7ih2xAlk6cUgWNZ7+ldehxuVj\nZKE3EafHKq9Ywkvl4hksAlcyjoVHKpQzev3gTgj2mI5v+NglJ978uWnSxpyCVGsm\nSSXwpy5+657rD80u47V4oQ==\n-----END PRIVATE KEY-----\n",
+  "client_email": "lista-de-presentes-streamlit@micro-runner-479512-v9.iam.gserviceaccount.com",
+  "client_id": "117843145295430761955",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/lista-de-presentes-streamlit%40micro-runner-479512-v9.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
